@@ -1,0 +1,73 @@
+<html>
+    <head>
+        <title>🔭 Telescope Editor</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/material-design-icons/3.0.1/iconfont/material-icons.min.css" />
+        <link rel="stylesheet" type="text/css" href="styles/main.css" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+    </head>
+
+    <body>
+        <div class="container-fluid">
+            <div class="section">
+                <div class="row">
+                    <div class="col s12" id="docs">
+                        <ul class="tabs"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed-action-btn">
+            <a class="btn-floating btn-large red">
+                <i class="large material-icons">more_vert</i>
+            </a>
+            <ul>
+                <li>
+                    <a id="leave-session" class="btn-floating yellow darken-1">
+                        <i class="material-icons">exit_to_app</i>
+                    </a>
+                </li>
+                <li>
+                    <a id="create-session" class="btn-floating yellow darken-1">
+                        <i class="material-icons">share</i>
+                    </a>
+                </li>
+                <li>
+                    <a id="join-session" class="btn-floating green">
+                        <i class="material-icons">open_in_browser</i>
+                    </a>
+                </li>
+                <li>
+                    <a id="create" class="btn-floating red">
+                        <i class="material-icons">note_add</i>
+                    </a>
+                </li>
+            </ul>
+        </div> 
+
+        <footer class="status-bar">
+            <ul>
+                <li id="connection-status">Currently disconnected</li>
+                <li id="user"></li>
+            </ul>
+        </footer>
+
+        <script src="vs/loader.js"></script>
+        <script>
+            var editor;
+            require.config({
+                paths: {
+                    'vs': 'vs'
+                }
+            });
+            require(['vs/editor/editor.main'], function () {
+
+            });
+        </script>
+
+        <script type="text/javascript" src="scripts/telescope.js"></script>
+    </body>
+</html>

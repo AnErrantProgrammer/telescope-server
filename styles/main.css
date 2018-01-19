@@ -1,0 +1,49 @@
+ body{
+    background-color: rgb(30,30,30);
+}
+
+.tabs .tab a{
+    background-color: rgb(108, 109, 105);
+    color:#ddd;
+}
+
+.tabs .tab a:hover, .tabs .tab a.active{
+    background-color: rgb(30,30,30);
+    color:#fff;
+}
+
+.tabs .indicator {
+    background-color: rgb(30,30,30);
+}        
+
+.tabs{
+    background-color: rgb(108, 109, 105);
+}
+
+.status-bar{
+    color:rgb(108, 109, 105);
+    padding:15px;
+    position: fixed;
+    bottom: 0;
+}
+
+.status-bar ul{
+    list-style: none;
+    padding: 0px;
+    margin: 0px;
+}
+
+.status-bar ul li{
+    display: inline-block;
+    margin-left:10px;
+    padding-right:10px;
+    border-right: 1px solid rgb(108, 109, 105);
+}
+
+.status-bar ul li:last-child{
+    border-right: none;
+}
+
+.test{
+    background-color: blue !important;
+}
