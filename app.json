@@ -1,0 +1,7 @@
+{
+  "name": "Telescope Server",
+  "description": "A real-time code collaboration tool",
+  "repository": "https://github.com/AnErrantProgrammer/telescope-server",
+  "logo": "http://telescope-server.herokuapp.com/images/telescope.png",
+  "keywords": ["vsc", "collaboration", "sockets"]
+}
