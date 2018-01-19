@@ -1,6 +1,6 @@
 var express = require('express');
 var app = express();
-
+var port = process.env.PORT || 5000;
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var uuidv1 = require('uuid/v1');
@@ -151,8 +151,8 @@ io.on(EVENTS.CONNECTION, function(socket) {
 
 });
 
-http.listen(3000, function() {
-    console.log('listening on *:3000');
+http.listen(port, function() {
+    console.log('listening on ' + port);
 });
 
 function editString(text, transforms) {
