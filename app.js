@@ -10,6 +10,7 @@ var _ = require('lodash');
 var path = require('path');
 
 app.use('/scripts',express.static('scripts'));
+app.use('/images',express.static('images'));
 app.use('/styles',express.static('styles'));
 
 app.use('/vs', express.static(path.join(__dirname, 'node_modules/monaco-editor/min/vs/')));
