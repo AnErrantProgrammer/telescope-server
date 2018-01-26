@@ -12,12 +12,16 @@ var socket = io();
 var currentDoc = "";
 var previousDoc = "";
 var name = (typeof localStorage.username !== 'undefined') ? localStorage.username : "HamCutter";
-var lastSession = (typeof localStorage.lastSession !== 'undefined' && localStorage.lastSession !== '' ) ? localStorage.lastSession : null;
+var lastSession = (typeof localStorage.lastSession !== 'undefined' && localStorage.lastSession !== '') ? localStorage.lastSession : null;
+if (location.search != '') {
+    lastSession = location.search.split("=")[1];
+}
 var belayChange = false;
 var currentSession = '';
 var files = [];
 
 var EVENTS = {
+    RE_ADD_DOC: 're add doc',
     ADD_DOC: 'add doc',
     CHANGE_DOC: 'change doc',
     CHANGE_SELECTION: 'change selection',
@@ -29,121 +33,154 @@ var EVENTS = {
     SET_SESSION: 'set session',
     REJECT_JOIN: 'reject join',
     SET_DOC_ID: 'set doc id',
+    USER_LEFT: 'left',
     USER_JOINED: 'joined'
 };
 
-$('#user').text(name).click(function() {
-    var username = prompt('User Name');
-    if (username && username != '') {
-        localStorage.setItem("username", name);
-        name = username;
-        $(this).text(name);
-        socket.emit(EVENTS.SET_NAME, {
-            name: name
-        });
-    }
-});
 
-socket.emit(EVENTS.SET_NAME, {
-    name: name
-});
+function initializeTelescope() {
+    socket.emit(EVENTS.SET_NAME, {
+        name: name
+    });
 
-socket.on(EVENTS.ADD_DOC, function(data) {
-    addDocToWorkSpace(data);
-});
+    socket.on(EVENTS.ADD_DOC, function(data) {
+        addDocToWorkSpace(data);
+    });
 
-socket.on(EVENTS.SET_SESSION, function(data) {
-    currentSession = data.session;
-    localStorage.lastSession = data.session;
-    $('#connection-status').text('Connected to ' + data.session);
-});
+    socket.on(EVENTS.RE_ADD_DOC, function(data) {
+        belayChange = true;
+        var editor = getEditorByFileId(data.fileId);
 
-socket.on(EVENTS.ECHO, function(data) {
-    Materialize.toast(data.text, 4000)
-});
-
-socket.on(EVENTS.USER_JOINED, function(data) {
-    sheet.addRule('.' + data.name, "background-color: blue");
-    sheet.addRule('.' + data.name + '-cursor', "border-right:1px solid blue");
-
-    Materialize.toast(data.name + " joined", 4000)
-});
-
-socket.on(EVENTS.REJECT_JOIN, function(data) {
-    Materialize.toast("Unknown Session ID", 4000)
-});
-
-socket.on(EVENTS.SET_NAME, function(data) {
-    Materialize.toast(data.name + " renamed", 4000)
-});
-
-socket.on(EVENTS.SET_DOC_ID, function(data) {
-    addDocToWorkSpace(data);
-});
-
-socket.on(EVENTS.CHANGE_SELECTION, function(data) {
-
-    var editor = getEditorByFileId(data.fileId)
-    if (editor) {
-        editor.setSelection(data.name, data.selections)
-    }
-
-});
-
-socket.on(EVENTS.CHANGE_DOC, function(data) {
-    belayChange = true;
-    var editor = getEditorByFileId(data.fileId);
-
-    if (editor) {
-        for (var i = 0; i < data.changeEvent.length; i++) {
-            editor.model.applyEdits([deFormatChange(data.changeEvent[i])]);
+        if (editor) {
+            editor.setValue(data.text);
         }
-    }
 
-    belayChange = false;
-});
+        belayChange = false;
+    });
 
-$("#join-session").click(function() {
-    var session = prompt('Session ID');
-    if (session && session != '') {
+    socket.on(EVENTS.SET_SESSION, function(data) {
+        currentSession = data.session;
+        localStorage.lastSession = data.session;
+        $('#connection-status').text('Connected to ' + data.session);
+    });
+
+    socket.on(EVENTS.ECHO, function(data) {
+        Materialize.toast(data.text, 4000)
+    });
+
+    socket.on(EVENTS.USER_JOINED, function(data) {
+        if (data.name != '') {
+            sheet.addRule('.' + data.name, "background-color: blue");
+            sheet.addRule('.' + data.name + '-cursor', "border-right:1px solid blue");
+
+            Materialize.toast(data.name + " joined session", 4000);
+        }
+    });
+
+    socket.on(EVENTS.USER_LEFT, function(data) {
+        Materialize.toast(data.name + "  left session", 4000)
+    });
+
+
+    socket.on(EVENTS.REJECT_JOIN, function(data) {
+        Materialize.toast("Unknown Session ID", 4000)
+    });
+
+    socket.on(EVENTS.SET_NAME, function(data) {
+        editors.forEach(function(editor) {
+            if (typeof editor.userSelections[data.previousName] !== 'undefined') {
+                editor.userSelections[data.name] = editor.userSelections[data.previousName];
+            } else {
+                editor.userSelections[data.name] = [];
+            }
+        });
+
+        Materialize.toast(data.name + " renamed", 4000)
+    });
+
+    socket.on(EVENTS.SET_DOC_ID, function(data) {
+        addDocToWorkSpace(data);
+    });
+
+    socket.on(EVENTS.CHANGE_SELECTION, function(data) {
+
+        var editor = getEditorByFileId(data.fileId)
+        if (editor) {
+            editor.setSelection(data.name, data.selections)
+        }
+
+    });
+
+    socket.on(EVENTS.CHANGE_DOC, function(data) {
+        belayChange = true;
+        var editor = getEditorByFileId(data.fileId);
+
+        if (editor) {
+            for (var i = 0; i < data.changeEvent.length; i++) {
+                editor.model.applyEdits([deFormatChange(data.changeEvent[i])]);
+            }
+        }
+
+        belayChange = false;
+    });
+
+    $("#join-session").click(function() {
+        var session = prompt('Session ID');
+        if (session && session != '') {
+            socket.emit(EVENTS.JOIN_SESSION, {
+                session: session
+            });
+        }
+    });
+
+    $("#create").click(function() {
+        var fileName = prompt('File Name');
+
+        if (fileName && fileName != '') {
+            socket.emit(EVENTS.ADD_DOC, {
+                fileName: fileName,
+                text: ''
+            });
+        }
+    });
+
+    $("#leave-session").click(function() {
+        currentSession = '';
+        localStorage.lastSession = '';
+        $('#connection-status').text('Disconnected');
+        socket.emit(EVENTS.LEAVE_SESSION);
+    });
+
+
+    $("#create-session").click(function() {
+        socket.emit(EVENTS.CREATE_SESSION);
+    });
+
+    $("#echo-session").click(function() {
+        socket.emit(EVENTS.ECHO_SESSION);
+    });
+
+    $('#user').text(name).click(function() {
+        var username = prompt('User Name');
+        if (username && username != '') {
+            localStorage.setItem("username", name);
+            name = username;
+            $(this).text(name);
+            socket.emit(EVENTS.SET_NAME, {
+                name: name
+            });
+        }
+    });
+
+    if (lastSession) {
+        console.log('Trying to resume last session');
         socket.emit(EVENTS.JOIN_SESSION, {
-            session: session
+            session: lastSession
         });
     }
-});
 
-$("#create").click(function() {
-    var fileName = prompt('File Name');
-
-    if (fileName && fileName != '') {
-        socket.emit(EVENTS.ADD_DOC, {
-            fileName: fileName,
-            text: ''
-        });
-    }
-});
-
-$("#leave-session").click(function() {
-    currentSession = '';
-    localStorage.lastSession = '';
-    socket.emit(EVENTS.LEAVE_SESSION);
-});
-
-
-$("#create-session").click(function() {
-    socket.emit(EVENTS.CREATE_SESSION);
-});
-
-$("#echo-session").click(function() {
-    socket.emit(EVENTS.ECHO_SESSION);
-});
-
-if(lastSession){
-    console.log('Trying to resume last session');
-    socket.emit(EVENTS.JOIN_SESSION, {
-        session: lastSession
-    });    
 }
+
 
 
 function guid() {
@@ -192,6 +229,7 @@ function addDocToWorkSpace(data) {
         .addClass('tab')
         .addClass('col')
         .addClass('s2')
+        .attr('data-file-id', newGuid)
         .appendTo("#docs > .tabs");
 
     $('<a></a>')
@@ -199,6 +237,35 @@ function addDocToWorkSpace(data) {
         .text(fileName)
         .appendTo(tabContainer)
         .click();
+
+    $('<i></i>')
+        .addClass('material-icons')
+        .addClass('re-add-file')
+        .text('share')
+        .appendTo(tabContainer)
+        .click(function() {
+            var id = $(this).parent().attr('data-file-id');
+            var editor = getEditorByFileId(id);
+
+            socket.emit(EVENTS.RE_ADD_DOC, {
+                fileId: id,
+                fileName: editor.fileName,
+                text: editor.getValue()
+            });
+        });
+
+    $('<i></i>')
+        .addClass('material-icons')
+        .addClass('close-file')
+        .text('clear')
+        .appendTo(tabContainer)
+        .click(function() {
+            var id = $(this).parent().attr('data-file-id');
+            var editor = getEditorByFileId(id);
+            editor.destroy();
+            $(this).parent().remove();
+            $('[id="' + id + '"]').remove();
+        });
 
     var newEditor = monaco.editor.create(elem, {
         value: text,

@@ -47,3 +47,31 @@
 .test{
     background-color: blue !important;
 }
+
+.close-file{
+    padding-right: 7px;
+    float: right;
+    position: relative;
+    top: -37px;
+    color: #444;
+    transition: color 0.5s ease;
+    cursor: pointer;
+}
+
+.re-add-file{
+    padding-left: 7px;
+    float: left;
+    position: relative;
+    top: -37px;
+    color: #444;
+    transition: color 0.5s ease;
+    cursor: pointer;
+}
+
+.tab:hover .close-file{
+    color: #fff;
+}
+
+.tab:hover .re-add-file{
+    color: #fff;
+}

@@ -9,9 +9,9 @@ var _ = require('lodash');
 
 var path = require('path');
 
-app.use('/scripts',express.static('scripts'));
-app.use('/images',express.static('images'));
-app.use('/styles',express.static('styles'));
+app.use('/scripts', express.static('scripts'));
+app.use('/images', express.static('images'));
+app.use('/styles', express.static('styles'));
 
 app.use('/vs', express.static(path.join(__dirname, 'node_modules/monaco-editor/min/vs/')));
 
@@ -19,9 +19,14 @@ app.get('/', function(req, res) {
     res.sendFile(process.cwd() + '/editor.html');
 });
 
+app.get('/session/:sessionId', function(req, res) {
+    res.sendFile(process.cwd() + '/editor.html');
+});
+
 var EVENTS = {
     CONNECTION: 'connection',
     ADD_DOC: 'add doc',
+    RE_ADD_DOC: 're add doc',
     CHANGE_DOC: 'change doc',
     CHANGE_SELECTION: 'change selection',
     CREATE_SESSION: 'create session',
@@ -33,6 +38,7 @@ var EVENTS = {
     REJECT_JOIN: 'reject join',
     SET_DOC_ID: 'set doc id',
     USER_JOINED: 'joined',
+    USER_LEFT: 'left',
     LEAVE_SESSION: 'leave session'
 };
 
@@ -76,13 +82,16 @@ io.on(EVENTS.CONNECTION, function(socket) {
                 session: session
             });
 
+            _.each(sessions[session].users, function(user) {
+                socket.emit(EVENTS.USER_JOINED, {
+                    name: user
+                });
+            });
+
             _.each(sessions[session].files, function(file) {
                 socket.emit(EVENTS.ADD_DOC, file);
             });
 
-            _.each(sessions[session].users, function(user) {
-                socket.emit(EVENTS.USER_JOINED, {name: user});
-            });
 
             sessions[session].users.push(name);
             sessions[session].users = _.uniq(sessions[session].users);
@@ -90,7 +99,7 @@ io.on(EVENTS.CONNECTION, function(socket) {
 
     });
 
-    socket.on(EVENTS.CHANGE_SELECTION, function(data){
+    socket.on(EVENTS.CHANGE_SELECTION, function(data) {
         if (session) {
             socket.broadcast.to(session).emit(EVENTS.CHANGE_SELECTION, {
                 name: name,
@@ -98,16 +107,24 @@ io.on(EVENTS.CONNECTION, function(socket) {
                 fileId: data.fileId,
                 fileName: data.fileName
             });
-        }        
+        }
     });
 
     socket.on(EVENTS.SET_NAME, function(data) {
-        if(typeof data.name !=='undefined'){
+        if (typeof data.name !== 'undefined') {
+            var previousName = name.toString();
             name = data.name.replace(/[^\w]/img, "");
 
             if (session) {
+                sessions[session].users = _.remove(sessions[session].users, function(user) {
+                    return user == previousName;
+                });
+
+                sessions[session].users.push(name);
+
                 socket.broadcast.to(session).emit(EVENTS.SET_NAME, {
-                    name: name
+                    name: name,
+                    previous: previousName
                 });
             }
         }
@@ -122,28 +139,45 @@ io.on(EVENTS.CONNECTION, function(socket) {
         }
     });
 
+    socket.on(EVENTS.RE_ADD_DOC, function(data) {
+        console.log('readd')
+        if (session) {
+            var doc = _.findIndex(sessions[session].files, function(o) {
+                return o.fileId == data.fileId;
+            });
+
+            if (doc !== -1) {
+                sessions[session].files[doc].text = data.text;
+                socket.broadcast.to(session).emit(EVENTS.RE_ADD_DOC, data);
+            }
+        }
+    });
+
     socket.on(EVENTS.LEAVE_SESSION, function() {
-        sessions[session].users = _.remove(sessions[session].users, function(user){
+        sessions[session].users = _.remove(sessions[session].users, function(user) {
             return user == name
         });
 
-        sessions[session].users.length == 0;
-        sessions[session] = null;
-        delete sessions[session];
-        
-        session = false;
-
         socket.leave(session);
+
+        if (sessions[session].users.length == 0) {
+            sessions[session] = null;
+            delete sessions[session];
+        } else {
+            socket.broadcast.to(session).emit(EVENTS.USER_LEFT, {
+                name: name
+            });
+        }
     });
 
     socket.on(EVENTS.CHANGE_DOC, function(data) {
         if (session) {
-            var doc = _.find(sessions[session].files, function(o) {
+            var doc = _.findIndex(sessions[session].files, function(o) {
                 return o.fileId == data.fileId;
             });
 
-            if (doc) {
-                doc.text = editString(doc.text, data.changeEvent);
+            if (doc !== -1) {
+                sessions[session].files[doc].text = editString(sessions[session].files[doc].text, data.changeEvent);
                 data.number = sessions[session].counter++;
                 socket.broadcast.to(session).emit(EVENTS.CHANGE_DOC, data);
             }

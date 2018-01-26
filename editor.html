@@ -50,11 +50,12 @@
 
         <footer class="status-bar">
             <ul>
-                <li id="connection-status">Currently disconnected</li>
+                <li id="connection-status">Disconnected</li>
                 <li id="user"></li>
             </ul>
         </footer>
 
+        <script type="text/javascript" src="scripts/telescope.js"></script>
         <script src="vs/loader.js"></script>
         <script>
             var editor;
@@ -64,10 +65,9 @@
                 }
             });
             require(['vs/editor/editor.main'], function () {
-
+                initializeTelescope();
             });
         </script>
 
-        <script type="text/javascript" src="scripts/telescope.js"></script>
     </body>
 </html>
